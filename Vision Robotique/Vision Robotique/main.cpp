@@ -46,8 +46,6 @@ Mat extractROI(Mat m)
 	return roi;
 }
 
-
-
 Scalar median(Mat image)
 {
 	double m = (image.rows*image.cols) / 2;
@@ -91,25 +89,26 @@ Scalar median(Mat image)
 	return med;
 }
 
-
 Mat treshold(Mat hsv, Mat roi)
 {
 	Mat t;
 	hsv.copyTo(t);
 
-	Scalar average = median(roi);
+	Scalar floor = median(roi);
 
-	int LowHue = average.val[0] - 20;
-	int HighHue = average.val[0] + 20;
+
+	
+	int LowHue = floor.val[0] - 20;
+	int HighHue = floor.val[0] + 20;
 
 	int LowSat;
-	if (average.val[1] < 20)
+	if (floor.val[1] < 20)
 		LowSat = 0;
 	else
 		LowSat = 10;
 
 	int HighSat;
-	if (average.val[2] >= 225)
+	if (floor.val[2] >= 225)
 		HighSat = 255;
 	else
 		HighSat = 200;
@@ -117,7 +116,7 @@ Mat treshold(Mat hsv, Mat roi)
 	int LowVal;
 	int HighVal;
 
-	if (average.val[2] < 20)
+	if (floor.val[2] < 20)
 	{
 		LowVal = 0;
 		HighVal = 35;
@@ -126,7 +125,7 @@ Mat treshold(Mat hsv, Mat roi)
 		HighHue = 255;
 
 	}
-	else if (average.val[2] > 220)
+	else if (floor.val[2] > 220)
 	{
 		LowVal = 220;
 		HighVal = 255;
@@ -142,15 +141,6 @@ Mat treshold(Mat hsv, Mat roi)
 	}
 
 
-
-
-	/*
-	int LowSat = average.val[1]-75;
-	int HighSat = average.val[1]+75;
-	int LowVal = average.val[2]-150;
-	int HighVal = average.val[2]+150;
-	*/
-
 	if (LowHue < 0)
 		LowHue = 0;
 	if (LowSat < 0)
@@ -158,7 +148,7 @@ Mat treshold(Mat hsv, Mat roi)
 	if (LowVal < 0)
 		LowVal = 0;
 
-	std::cout << "Zone ROI: h = " << average.val[0] << " s = " << average.val[1] << " v = " << average.val[2] << std::endl;
+	std::cout << "Zone ROI: h = " << floor.val[0] << " s = " << floor.val[1] << " v = " << floor.val[2] << std::endl;
 	std::cout << "test valeurs: " << LowHue << " " << LowSat << " " << LowVal << std::endl;
 
 	inRange(hsv, Scalar(LowHue, LowSat, LowVal), Scalar(HighHue, HighSat, HighVal), t);
@@ -167,6 +157,40 @@ Mat treshold(Mat hsv, Mat roi)
 	return t;
 }
 
+Mat customHSV(Mat input)
+{
+	//Fonction qui converti l'image en HSV puis la filtre via des valeurs spécifiques.
+	cvtColor(input, input, CV_BGR2HSV);
+	int x, y;
+	Vec3b pxl;
+	uchar h, s, v;
+	std::cout << "DEBUG : input.cols = " << input.cols << " input.rows = " << input.rows << std::endl;
+	//parcours de l'image
+	for (x = 0; x < input.cols; x++)
+		for (y = 0; y < input.rows; y++)
+		{
+			pxl = input.at<Vec3b>(y, x);					//recupération de la valeur du pixel
+			h = pxl.val[0];
+			s = pxl.val[1];
+			v = pxl.val[2];
+
+			//Si l'image est trop sombre, teinte et saturation non considérables
+			if (v < 40)
+			{
+				h = 0;
+				s = 0;
+			}
+			//Si saturation trop faible, teinte non considérable.
+			if (s < 40)
+				h = 0;
+
+			Vec3b cleared = { h, s, v };
+			std::cout << "DEBUG: h= " << (int)cleared.val[0] << " s= " << (int)cleared.val[1] << " v= " << (int)cleared.val[2] << std::endl;
+			//input.at<Vec3b>(x, y) = cleared;
+		}
+
+	return input;
+}
 
 int testflux()
 {
@@ -215,18 +239,24 @@ int testflux()
 	{
 		cap >> frame;
 
-		frame.copyTo(ROI);
 
-		//std::cerr << "image chans : " << frame.channels() << std::endl;
-
-		//std::cout << "DEBUG : " << frame.size() << std::endl;
 		if (framenb > 5)
 		{
+			//application du filtre gaussien pour éviter le bruit
+			GaussianBlur(frame, frame, Size(5, 5), 0, 0);
+
+			//copie de la région d'intêret
+			frame.copyTo(ROI);
 			ROI = extractROI(ROI);
 
 			//conversion BGR = > HSV
+			/*
 			cvtColor(frame, hsv, COLOR_BGR2HSV);
 			cvtColor(ROI, ROIhsv, COLOR_BGR2HSV);
+			*/
+			hsv = customHSV(frame);
+			ROIhsv = customHSV(ROI);
+
 			ROIhsv.copyTo(MedianCol);
 
 			//détermination de la couleur médiane
