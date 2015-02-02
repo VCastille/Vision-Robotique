@@ -102,19 +102,20 @@ Mat treshold(Mat hsv, Mat roi)
 	int HighHue = floor.val[0] + 20;
 
 	int LowSat;
+	int HighSat;
+
+	int LowVal;
+	int HighVal;
+
 	if (floor.val[1] < 20)
 		LowSat = 0;
 	else
 		LowSat = 10;
 
-	int HighSat;
 	if (floor.val[2] >= 225)
 		HighSat = 255;
 	else
 		HighSat = 200;
-
-	int LowVal;
-	int HighVal;
 
 	if (floor.val[2] < 20)
 	{
@@ -160,16 +161,18 @@ Mat treshold(Mat hsv, Mat roi)
 Mat customHSV(Mat input)
 {
 	//Fonction qui converti l'image en HSV puis la filtre via des valeurs spécifiques.
-	cvtColor(input, input, CV_BGR2HSV);
+	Mat hsv;
+	input.copyTo(hsv);
+	cvtColor(hsv, hsv, CV_BGR2HSV);
 	int x, y;
 	Vec3b pxl;
 	uchar h, s, v;
-	std::cout << "DEBUG : input.cols = " << input.cols << " input.rows = " << input.rows << std::endl;
+	std::cout << "DEBUG : hsv.cols = " << hsv.cols << " hsv.rows = " << hsv.rows << std::endl;
 	//parcours de l'image
-	for (x = 0; x < input.cols; x++)
-		for (y = 0; y < input.rows; y++)
+	for (x = 0; x < hsv.rows; x++)
+		for (y = 0; y < hsv.cols; y++)
 		{
-			pxl = input.at<Vec3b>(y, x);					//recupération de la valeur du pixel
+			pxl = hsv.at<Vec3b>(x, y);					//recupération de la valeur du pixel
 			h = pxl.val[0];
 			s = pxl.val[1];
 			v = pxl.val[2];
@@ -185,11 +188,11 @@ Mat customHSV(Mat input)
 				h = 0;
 
 			Vec3b cleared = { h, s, v };
-			std::cout << "DEBUG: h= " << (int)cleared.val[0] << " s= " << (int)cleared.val[1] << " v= " << (int)cleared.val[2] << std::endl;
-			//input.at<Vec3b>(x, y) = cleared;
+			//std::cout << "DEBUG: h= " << (int)cleared.val[0] << " s= " << (int)cleared.val[1] << " v= " << (int)cleared.val[2] << std::endl;
+			hsv.at<Vec3b>(x, y) = cleared;
 		}
-
-	return input;
+	std::cout << "return ce shit" << std::endl;
+	return hsv;
 }
 
 int testflux()
