@@ -4,9 +4,13 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-using namespace cv;
+#include "Computing.h"
+#include "Image.h"
+#include "ROI.h"
 
+//using namespace cv;
 
+/*
 void disclaimer()
 {
 	std::cout << "*************************************************************" << std::endl;
@@ -97,7 +101,6 @@ Mat treshold(Mat hsv, Mat roi)
 	Scalar floor = median(roi);
 
 
-	
 	int LowHue = floor.val[0] - 20;
 	int HighHue = floor.val[0] + 20;
 
@@ -195,20 +198,17 @@ Mat customHSV(Mat input)
 	return hsv;
 }
 
+*/
+
 int testflux()
 {
 	// Touche clavier
 	char key = -1;
 	long long framenb = 0; //numero de la frame
 	//Definition des matrices utilisées
-	Mat frame;
-	Mat ROI;
-	Mat hsv;    //Matrice dans l'espace HSV: permet de mieux gérer les différences de lumière
-	Mat ROIhsv;
-	Mat MedianCol;
-	Mat tree;
+	cv::Mat frame, hsv, ROIhsv, MedianCol, tree;
 
-	Scalar med;
+	cv::Scalar med;
 
 
 	std::cout << "Ouverture flux" << std::endl;
@@ -216,7 +216,7 @@ int testflux()
 	// Ouvrir le flux vidéo via réseau
 	//VideoCapture cap("http://192.168.20.1:8091/webcam.flv");
 	//via webcam
-	VideoCapture cap(0);
+	cv::VideoCapture cap(0);
 
 	//test udp
 	//VideoCapture cap("udp://192.168.42.202:6666/?action=stream;type=.mjpg");
@@ -237,52 +237,59 @@ int testflux()
 	cvNamedWindow("Seuil", CV_WINDOW_AUTOSIZE);
 	*/
 
+	//initialisation des objets
+	Image* capture = new Image();
+	Computing* comp = new Computing();
+	ROI* Roi = new ROI(frame);
+
 	// Boucle tant que l'utilisateur n'appuie pas sur la touche q (ou Q)
 	while (key != 'q' && key != 'Q')
 	{
 		cap >> frame;
-
-
+		capture->refresh(frame);
+		comp->refresh(frame);
 		if (framenb > 5)
 		{
 			//application du filtre gaussien pour éviter le bruit
-			GaussianBlur(frame, frame, Size(5, 5), 0, 0);
+			GaussianBlur(frame, frame, cv::Size(5, 5), 0, 0);
 
 			//copie de la région d'intêret
-			frame.copyTo(ROI);
-			ROI = extractROI(ROI);
+			Roi->refresh(frame);
 
 			//conversion BGR = > HSV
 			/*
 			cvtColor(frame, hsv, COLOR_BGR2HSV);
 			cvtColor(ROI, ROIhsv, COLOR_BGR2HSV);
 			*/
-			hsv = customHSV(frame);
-			ROIhsv = customHSV(ROI);
+			//hsv = customHSV(frame);
+			//ROIhsv = customHSV(ROI);
 
-			ROIhsv.copyTo(MedianCol);
+			Roi->getimg().copyTo(MedianCol);
 
 			//détermination de la couleur médiane
-			med = median(MedianCol);
-			std::cout << "Median: " << med.val[0] << " " << med.val[1] << " " << med.val[2] << std::endl;
+			//Roi->median();
+
+			std::cout << "Median: " << Roi->getmedian().val[0] << " " << Roi->getmedian().val[1] << " " << Roi->getmedian().val[2] << std::endl;
 
 			//Affiche un rectangle de la couleur mediane
-			rectangle(MedianCol, Point(0, 0), Point(400, 200), med, -1, 8);
+			rectangle(MedianCol, cv::Point(0, 0), cv::Point(400, 200), Roi->getmedian(), -1, 8);
 
 
 			//inRange(frameHSV, Scalar(50, 50, 50), Scalar(150, 150, 150), tree);
-			tree = treshold(hsv, ROIhsv);
+			//tree = treshold(hsv, ROIhsv);
+			tree = comp->getThreshold();
+
 			//morphological opening (remove small objects from the foreground)
-			erode(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			erode(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+			erode(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+			dilate(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+			erode(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 			//  erode(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+			dilate(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
+			dilate(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
 			//erode(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 			//dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
 			//dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			medianBlur(tree, tree, 7);
+			cv::medianBlur(tree, tree, 7);
 
 
 
@@ -300,10 +307,10 @@ int testflux()
 		if (framenb > 5)
 		{
 			cvtColor(MedianCol, MedianCol, CV_HSV2BGR);
-			imshow("Video raspberry", frame);
-			imshow("Region of interest", ROI);
-			imshow("Couleur mediane", MedianCol);
-			imshow("Seuil", tree);
+			cv::imshow("Video raspberry", comp->getimg());
+			cv::imshow("Region of interest", comp->getRoi());
+			//cv::imshow("Couleur mediane", MedianCol);
+			//cv::imshow("Seuil", tree);
 		}
 
 		// On attend 10ms
@@ -319,8 +326,6 @@ int testflux()
 
 int main()
 {
-	disclaimer();
-
 	testflux();
 
 	return 0;
