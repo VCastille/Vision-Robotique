@@ -8,8 +8,9 @@ public:
 	Computing();
 	~Computing();
 	cv::Mat getThreshold();
-	cv::Mat getRoi();
+	cv::Mat getRoiImg();
 	void refresh(cv::Mat frame);
+	ROI* getRoi();
 
 private:	
 	void threshold();

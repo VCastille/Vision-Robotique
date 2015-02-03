@@ -240,7 +240,7 @@ int testflux()
 	//initialisation des objets
 	Image* capture = new Image();
 	Computing* comp = new Computing();
-	ROI* Roi = new ROI(frame);
+	//ROI* Roi = new ROI(frame);
 
 	// Boucle tant que l'utilisateur n'appuie pas sur la touche q (ou Q)
 	while (key != 'q' && key != 'Q')
@@ -254,7 +254,7 @@ int testflux()
 			GaussianBlur(frame, frame, cv::Size(5, 5), 0, 0);
 
 			//copie de la région d'intêret
-			Roi->refresh(frame);
+			comp->refresh(frame);
 
 			//conversion BGR = > HSV
 			/*
@@ -264,15 +264,15 @@ int testflux()
 			//hsv = customHSV(frame);
 			//ROIhsv = customHSV(ROI);
 
-			Roi->getimg().copyTo(MedianCol);
+			comp->getRoiImg().copyTo(MedianCol);
 
 			//détermination de la couleur médiane
 			//Roi->median();
 
-			std::cout << "Median: " << Roi->getmedian().val[0] << " " << Roi->getmedian().val[1] << " " << Roi->getmedian().val[2] << std::endl;
+			std::cout << "Median: " << comp->getRoi()->getmedian().val[0] << " " << comp->getRoi()->getmedian().val[1] << " " << comp->getRoi()->getmedian().val[2] << std::endl;
 
 			//Affiche un rectangle de la couleur mediane
-			rectangle(MedianCol, cv::Point(0, 0), cv::Point(400, 200), Roi->getmedian(), -1, 8);
+			rectangle(MedianCol, cv::Point(0, 0), cv::Point(400, 200), comp->getRoi()->getmedian(), -1, 8);
 
 
 			//inRange(frameHSV, Scalar(50, 50, 50), Scalar(150, 150, 150), tree);
@@ -308,9 +308,9 @@ int testflux()
 		{
 			cvtColor(MedianCol, MedianCol, CV_HSV2BGR);
 			cv::imshow("Video raspberry", comp->getimg());
-			cv::imshow("Region of interest", comp->getRoi());
-			//cv::imshow("Couleur mediane", MedianCol);
-			//cv::imshow("Seuil", tree);
+			cv::imshow("Region of interest", comp->getRoiImg());
+			cv::imshow("Couleur mediane", MedianCol);
+			cv::imshow("Seuil", tree);
 		}
 
 		// On attend 10ms

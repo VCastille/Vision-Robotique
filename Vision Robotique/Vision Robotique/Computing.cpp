@@ -1,4 +1,5 @@
 #include "Computing.h"
+#include "ROI.h"
 
 using namespace cv;
 
@@ -18,9 +19,14 @@ Mat Computing::getThreshold()
 	return thresholded;
 }
 
-cv::Mat Computing::getRoi()
+cv::Mat Computing::getRoiImg()
 {
 	return _roi->getimg();
+}
+
+ROI* Computing::getRoi()
+{
+	return _roi;
 }
 
 void Computing::threshold()
@@ -93,6 +99,6 @@ void Computing::threshold()
 
 void Computing::refresh(cv::Mat frame)
 {
-	img = frame;
-	
+	frame.copyTo(img);
+	_roi->refresh(frame);
 }
