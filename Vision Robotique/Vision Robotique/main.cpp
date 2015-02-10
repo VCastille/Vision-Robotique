@@ -8,29 +8,33 @@
 #include "Image.h"
 #include "ROI.h"
 
-//using namespace cv;
+
+using namespace cv;
+using namespace std;
+
 
 int testflux()
 {
 	// Touche clavier
 	char key = -1;
 	long long framenb = 0; //numero de la frame
+
 	//Definition des matrices utilisées
-	cv::Mat frame, hsv, ROIhsv, MedianCol, tree;
+	cv::Mat frame, hsv, ROIhsv, MedianCol, tree, canny;
 
 	cv::Scalar med;
-
 
 	std::cout << "Ouverture flux" << std::endl;
 
 	// Ouvrir le flux vidéo via réseau
-	//VideoCapture cap("http://192.168.20.1:8091/webcam.flv");
+	//VideoCapture cap("http://192.168.20.1:8091/webcam.flv")
+	//test udp
+	//VideoCapture cap("rtsp://192.168.0.23:8554/");
+	//cv::VideoCapture cap("udp://@236.6.6.6:6666");
+
 	//via webcam
 	cv::VideoCapture cap(0);
 
-	//test udp
-	//VideoCapture cap("udp://192.168.42.202:6666/?action=stream;type=.mjpg");
-	//VideoCapture cap("udp://@236.6.6.6:6666/?action=stream;type=.mjpg");
 
 	// Vérifier si l'ouverture du flux est ok
 	if (!cap.isOpened())
@@ -41,11 +45,9 @@ int testflux()
 
 	// Définition des fenêtres
 	cvNamedWindow("Video raspberry", CV_WINDOW_AUTOSIZE);
-	/*
 	cvNamedWindow("Region of interest", CV_WINDOW_AUTOSIZE);
 	cvNamedWindow("Couleur mediane", CV_WINDOW_AUTOSIZE);
 	cvNamedWindow("Seuil", CV_WINDOW_AUTOSIZE);
-	*/
 
 	//initialisation des objets
 	Image* capture = new Image();
@@ -57,25 +59,19 @@ int testflux()
 		cap >> frame;
 		capture->refresh(frame);
 		comp->refresh(frame);
+
 		if (framenb > 5)
 		{
-			//application du filtre gaussien pour éviter le bruit
+			//application du filtre gaussien pour réduire le bruit
 			GaussianBlur(frame, frame, cv::Size(5, 5), 0, 0);
 
 			//copie de la région d'intêret
 			comp->refresh(frame);
 
-			//conversion BGR = > HSV
-			/*
-			cvtColor(frame, hsv, COLOR_BGR2HSV);
-			cvtColor(ROI, ROIhsv, COLOR_BGR2HSV);
-			*/
-
+			//
 			comp->getRoiImg().copyTo(MedianCol);
 
-			//détermination de la couleur médiane
-			//Roi->median();
-
+			//affichage du Median
 			std::cout << "Median: " << comp->getRoi()->getmedian().val[0] << " " << comp->getRoi()->getmedian().val[1] << " " << comp->getRoi()->getmedian().val[2] << std::endl;
 
 			//Affiche un rectangle de la couleur mediane
@@ -83,22 +79,9 @@ int testflux()
 
 			//seuillage
 			tree = comp->getThreshold();
-
-			//morphological opening (remove small objects from the foreground)
-			erode(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-			dilate(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-			erode(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-			//  erode(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			dilate(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-			dilate(tree, tree, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5)));
-			//erode(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			//dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			//dilate(tree, tree, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-			cv::medianBlur(tree, tree, 7);
-
+			erode(tree, tree, getStructuringElement(MORPH_ERODE, Size(5, 5)));
+			erode(tree, tree, getStructuringElement(MORPH_ERODE, Size(5, 5)));
 		}
-		//std::cout << "sortie de boucle" << std::endl;
-		//cvtColor(hsv, hsv,CV_HSV2BGR);
 
 		// On affiche l'image dans une fenêtre
 		if (framenb > 5)
@@ -107,15 +90,14 @@ int testflux()
 			cv::imshow("Video raspberry", comp->getimg());
 			cv::imshow("Region of interest", comp->getRoiImg());
 			cv::imshow("Couleur mediane", MedianCol);
-			cv::imshow("Seuil", tree);
+			cv::imshow("Seuil", comp->getThreshold());
 		}
 
 		// On attend 10ms
-		key = cvWaitKey(10);
+		key = cvWaitKey(40);
 		framenb++;
 	}
 
-	//cvReleaseCapture(&cap);
 	cvDestroyWindow("Video raspberry");
 
 	return 0;
